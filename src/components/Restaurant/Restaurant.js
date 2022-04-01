@@ -1,17 +1,34 @@
 import React, { useEffect, useState } from 'react';
+import { addTodb, getShoppingCart } from '../../utilities/fakedb';
 import Meal from '../Meal/Meal';
 import OrderList from '../OrderList/OrderList';
 import './Restaurant.css';
 
 const Restaurant = () => {
     const [meals, setMeals] = useState([]);
-    const [orders, setOrders] = useState([]);
+    const [orders,setOrders] = useState([]);
 
     useEffect(() => {
         fetch('https://www.themealdb.com/api/json/v1/1/search.php?s=fish')
             .then(res => res.json())
             .then(data => setMeals(data.meals));
     }, []);
+
+    useEffect( () =>{
+        const savedOrder = getShoppingCart();
+        let newOrder = [];
+        for(const id in savedOrder){
+            const addedMeal = meals.find(meal => meal.idMeal === id);
+            if(addedMeal){
+                const quantity = savedOrder[id];
+                addedMeal.quantity = quantity;
+               newOrder.push(addedMeal);
+            }
+        }
+        setOrders(newOrder);
+    } , [meals])
+
+   
     /* 
         The above api link or the below method will now work for search. 
         if you want to implement search in this code. 
@@ -26,7 +43,21 @@ const Restaurant = () => {
         Read carefully, give it a try. [ Ki ache jibone]
         if  you need help, let us know in the support session
     */
-    
+     const handleAddToOrder = meal =>{
+         let orderedItem = [];
+         const exits = orders.find(m => m.idMeal === meal.idMeal);
+         if(exits){
+             const rest = orders.filter(m => m.idMeal !== meal.idMeal);
+             exits.quantity = exits.quantity + 1;
+             orderedItem = [...rest,exits];
+         }
+         else{
+            meal.quantity = 1;
+            orderedItem =[...orders,meal];   
+         }
+        setOrders(orderedItem);
+        addTodb(meal.idMeal);
+     }
 
     return (
         <div className="restaurant-menu">
@@ -35,6 +66,7 @@ const Restaurant = () => {
                     meals.map(meal => <Meal
                         key={meal.idMeal}
                         meal={meal}
+                        handleAddToOrder = {handleAddToOrder}
                     ></Meal>)
                 }
             </div>
